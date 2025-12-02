@@ -2,28 +2,36 @@
 
 bin="yawn"
 libs=""
+builddir="objs"
 
-echo "cflags = -Wall -g $(pkg-config --cflags $libs 2>/dev/null)" > build.ninja
-echo "libs = $(pkg-config --libs $libs 2>/dev/null)" >> build.ninja
+write() {
+    echo "$@" >> build.ninja
+}
 
-echo 'rule cc' >> build.ninja
-echo '  deps = gcc' >> build.ninja
-echo '  depfile = $out.d' >> build.ninja
-echo '  description = CC $out' >> build.ninja
-echo '  command = gcc -MD -MF $out.d $cflags -c $in -o $out' >> build.ninja
-echo '' >> build.ninja
+rm -f build.ninja
 
-echo 'rule link' >> build.ninja
-echo '  description = LD $out' >> build.ninja
-echo '  command = gcc $libs $in -o $out' >> build.ninja
-echo '' >> build.ninja
+write "cflags = -Wall -g $(pkg-config --cflags $libs 2>/dev/null)"
+write "libs = $(pkg-config --libs $libs 2>/dev/null)"
+
+write 'rule cc'
+write '  deps = gcc'
+write '  depfile = $out.d'
+write '  description = CC $out'
+write '  command = gcc -MD -MF $out.d $cflags -c $in -o $out'
+write ''
+
+write 'rule link'
+write '  description = LD $out'
+write '  command = gcc $libs $in -o $out'
+write ''
 
 files="$(find src -name '*.c')"
-ofiles=$(echo $files | sed 's,^src/\(.*\)\.c$,objs/\1.o,g')
+sedstr=$(printf 's,^src/\(.*\)\.c$,%s/\\1.o,g' ${builddir})
+ofiles=$(echo $files | sed ${sedstr})
 
 for f in $files; do
-    of=$(echo $f | sed 's,^src/\(.*\)\.c$,objs/\1.o,g')
-    echo -en "build $of: cc $f\n" >> build.ninja
+    of=$(echo $f | sed ${sedstr})
+    write "build $of: cc $f"
 done
 
-echo "build $bin: link $ofiles" >> build.ninja
+write "build $bin: link $ofiles"
