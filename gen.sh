@@ -4,15 +4,27 @@ bin="yawn"
 libs=""
 release=0
 builddir="objs"
+installing=0
+PREFIX="/usr"
+
+run_install() {
+    echo "Installing ${bin}"
+    install -m 755 ./${bin} ${PREFIX}/bin
+    exit 0
+}
 
 while [ "$1" ]; do
 	case "$1" in
         --release|-r) release=1 ;;
         --builddir*) builddir="$(echo $1 | cut -d= -f2)" ;;
+        --prefix*) PREFIX="$(echo $1 | cut -d= -f2)" ;;
+        --_install) installing=1 ;;
 		-*) exit 1 ;;
 	esac
 	shift
 done
+
+[ $installing -eq 1 ] && run_install
 
 CFLAGS=${CFLAGS:-""}
 
@@ -24,10 +36,10 @@ write() {
 
 rm -f build.ninja
 
-
 write "builddir = $builddir"
 write "cflags = $CFLAGS $(pkg-config --cflags $libs 2>/dev/null)"
 write "libs = $(pkg-config --libs $libs 2>/dev/null)"
+write ''
 
 write 'rule cc'
 write '  deps = gcc'
@@ -41,6 +53,11 @@ write '  description = LD $out'
 write '  command = gcc $libs $in -o $out'
 write ''
 
+write 'rule run_install'
+write '  description = Installing Project'
+write "  command = ./gen.sh --_install --prefix=${PREFIX}"
+write ''
+
 files="$(find src -name '*.c')"
 sedstr=$(printf 's,^src/\(.*\)\.c$,%s/\\1.o,g' ${builddir})
 ofiles=$(echo $files | sed ${sedstr})
@@ -50,5 +67,9 @@ for f in $files; do
     write "build $of: cc $f"
 done
 
+write "build install: run_install"
+
 write "build $bin: link $ofiles"
+write "default ${bin}"
+
 echo "Wrote ./build.ninja file"
