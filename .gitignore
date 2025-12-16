@@ -1,5 +1,4 @@
 yawn
-objs
+objs/
+build/
 build.ninja
-.ninja_deps
-.ninja_log
