@@ -1,7 +1,7 @@
 #!/bin/bash
 
 bin="yawn"
-libs=""
+libs="libdrm"
 release=0
 builddir="objs"
 installing=0
@@ -36,6 +36,7 @@ write() {
 
 mkdir -p $builddir
 
+echo "$CFLAGS $(pkg-config --cflags $libs 2>/dev/null)" | tr ' ' '\n' > compile_flags.txt
 rm -f build.ninja
 
 write "builddir = $builddir"
