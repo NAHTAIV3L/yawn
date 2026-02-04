@@ -16,8 +16,8 @@ run_install() {
 while [ "$1" ]; do
 	case "$1" in
         --release|-r) release=1 ;;
-        --builddir*) builddir="$(echo $1 | cut -d= -f2)" ;;
-        --prefix*) PREFIX="$(echo $1 | cut -d= -f2)" ;;
+        --builddir=*) builddir="${1#*=" ;;
+        --prefix=*) PREFIX="${1#*=}" ;;
         --install) installing=1 ;;
 		-*) exit 1 ;;
 	esac
