@@ -1,7 +1,9 @@
 #!/bin/bash
 
+#https://gist.github.com/Miouyouyou/89e9fe56a2c59bce7d4a18a858f389ef
+
 bin="yawn"
-libs="libdrm"
+libs="libdrm libseat gbm egl glesv2"
 release=0
 builddir="objs"
 installing=0
@@ -16,7 +18,7 @@ run_install() {
 while [ "$1" ]; do
 	case "$1" in
         --release|-r) release=1 ;;
-        --builddir=*) builddir="${1#*=" ;;
+        --builddir=*) builddir="${1#*=}" ;;
         --prefix=*) PREFIX="${1#*=}" ;;
         --install) installing=1 ;;
 		-*) exit 1 ;;
@@ -68,6 +70,7 @@ done
 
 write "build install: run_install"
 write "build $bin: link $(echo $ofiles)"
-write "default ${bin}"
+write "build all: phony $bin"
+write "default all"
 
 echo "Wrote ./build.ninja file"
