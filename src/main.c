@@ -1,18 +1,14 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
-#include <libseat.h>
-#include <gbm.h>
-#include <drm_fourcc.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#include <drm_fourcc.h>
 #include "drm-inst.h"
-#include "gbm-inst.h"
-#include "egl.h"
+#include "udev.h"
 
 void fb_destroy_callback(struct gbm_bo* bo, void* data) {
 	int fd = gbm_device_get_fd(gbm_bo_get_device(bo));
@@ -24,7 +20,8 @@ void fb_destroy_callback(struct gbm_bo* bo, void* data) {
 	free(fb_id);
 }
 
-uint32_t get_fb_id_from_bo(int fd, struct gbm_bo* bo) {
+uint32_t get_fb_id_from_bo(struct gbm_bo* bo) {
+    int fd = gbm_bo_get_fd(bo);
     uint32_t width, height, format,
         strides[4] = {0}, handles[4] = {0},
         offsets[4] = {0}, flags = 0;
@@ -103,16 +100,6 @@ int main() {
         return 1;
     }
 
-    struct gbm* gbm = gbm_init(drm);
-    if (!gbm) {
-        return 1;
-    }
-
-    struct egl* egl = egl_init(gbm);
-    if (!egl) {
-        return 1;
-    }
-
 	drmEventContext evctx = {
 			.version = 2,
 			.page_flip_handler = page_flip_handler,
@@ -125,7 +112,7 @@ int main() {
     struct gbm_bo* bo = NULL;
     eglSwapBuffers(egl->display, egl->surface);
     bo = gbm_surface_lock_front_buffer(gbm->surface);
-    uint32_t fb_id = get_fb_id_from_bo(drm->fd, bo);
+    uint32_t fb_id = get_fb_id_from_bo(bo);
     if (!fb_id) {
         fprintf(stderr, "Failed to get framebuffer\n");
         return 1;
@@ -146,7 +133,7 @@ int main() {
         eglSwapBuffers(egl->display, egl->surface);
 
         struct gbm_bo* next_bo = gbm_surface_lock_front_buffer(gbm->surface);
-        fb_id = get_fb_id_from_bo(drm->fd, next_bo);
+        fb_id = get_fb_id_from_bo(next_bo);
         if (!fb_id) {
             fprintf(stderr, "Failed to get next framebuffer\n");
             return 1;
@@ -170,8 +157,6 @@ int main() {
         gbm_surface_release_buffer(gbm->surface, bo);
     }
 
-    egl_deinit(egl);
-    gbm_deinit(gbm);
     drm_deinit(drm);
     return 0;
 }

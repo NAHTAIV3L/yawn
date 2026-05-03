@@ -3,3 +3,4 @@ objs/
 build/
 build.ninja
 compile_flags.txt
+TAGS

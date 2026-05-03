@@ -6,7 +6,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#include "gbm-inst.h"
+#include "gbm_inst.h"
 
 struct egl {
     EGLDisplay display;

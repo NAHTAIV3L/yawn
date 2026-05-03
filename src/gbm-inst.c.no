@@ -1,0 +1,70 @@
+#include "gbm-inst.h"
+
+int gbm_dev_init(struct gbm_dev* gbm_dev, struct drm_device* device) {
+    gbm_dev->device = gbm_create_device(device->fd);
+    gbm_dev->fd = device->fd;
+    if (!gbm_dev->device) {
+        fprintf(stderr, "Failed to create gbm device\n");
+        goto error;
+    }
+
+    gbm_dev->surface =
+        gbm_surface_create(gbm_dev->device,
+                           device->mode->hdisplay,
+                           device->mode->vdisplay,
+                           GBM_FORMAT_XRGB8888,
+                           GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+    if (!gbm_dev->surface) {
+        fprintf(stderr, "Failed to open gbm surface\n");
+        goto error;
+    }
+    return 1;
+ error:
+    if (gbm_dev->surface) gbm_surface_destroy(gbm_dev->surface);
+    if (gbm_dev->device) gbm_device_destroy(gbm_dev->device);
+    gbm_dev->fd = -1;
+    return 0;
+}
+
+void gbm_dev_deinit(struct gbm_dev* gbm_dev) {
+    if (gbm_dev->fd < 0) return;
+    gbm_surface_destroy(gbm_dev->surface);
+    gbm_device_destroy(gbm_dev->device);
+}
+
+struct gbm* gbm_init(struct drm* drm) {
+    struct gbm* gbm = calloc(1, sizeof(*gbm));
+    if (!gbm) {
+        fprintf(stderr, "Failed to allocate for gbm\n");
+        return NULL;
+    }
+
+    gbm->devices = calloc(drm->num_devices, sizeof(*gbm->devices));
+    if (!gbm->devices) {
+        fprintf(stderr, "Failed to allocate gbm_device\n");
+        goto error;
+    }
+    gbm->num_devices = drm->num_devices;
+    for (int i = 0; i < gbm->num_devices; i++) {
+        if (!gbm_dev_init(&gbm->devices[i], &drm->devices[i])) {
+            fprintf(stderr, "Failed to initalize gbm for device: %s\n", drm->devices[i].path);
+        }
+    }
+
+    return gbm;
+ error:
+    if (gbm->devices) {
+        for (uint32_t i = 0; i < gbm->num_devices; i++) {
+            gbm_dev_deinit(&gbm->devices[i]);
+        }
+    }
+    if (gbm) free(gbm);
+    return NULL;
+}
+
+void gbm_deinit(struct gbm* gbm) {
+    for (uint32_t i = 0; i < gbm->num_devices; i++) {
+        gbm_dev_deinit(&gbm->devices[i]);
+    }
+    free(gbm);
+}

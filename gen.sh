@@ -3,30 +3,21 @@
 #https://gist.github.com/Miouyouyou/89e9fe56a2c59bce7d4a18a858f389ef
 
 bin="yawn"
-libs="libdrm libseat gbm egl glesv2"
+libs="libdrm libudev gbm egl glesv2"
 release=0
 builddir="objs"
 installing=0
 PREFIX="/usr"
-
-run_install() {
-    echo "Installing ${bin}"
-    install -m 755 ./${bin} ${PREFIX}/bin
-    exit 0
-}
 
 while [ "$1" ]; do
 	case "$1" in
         --release|-r) release=1 ;;
         --builddir=*) builddir="${1#*=}" ;;
         --prefix=*) PREFIX="${1#*=}" ;;
-        --install) installing=1 ;;
 		-*) exit 1 ;;
 	esac
 	shift
 done
-
-[ $installing -eq 1 ] && run_install
 
 CFLAGS=${CFLAGS:-""}
 
@@ -55,10 +46,6 @@ write 'rule link'
 write '  description = LD $out'
 write '  command = gcc $libs $in -o $out'
 
-write 'rule run_install'
-write '  description = Installing Project'
-write "  command = ./gen.sh --install --prefix=${PREFIX}"
-
 files="$(find src -name '*.c')"
 sedstr=$(printf 's,^src/\(.*\)\.c$,%s/\\1.o,g' ${builddir})
 ofiles=$(echo "$files" | sed ${sedstr})
@@ -68,7 +55,6 @@ for f in $files; do
     write "build $of: cc $f"
 done
 
-write "build install: run_install"
 write "build $bin: link $(echo $ofiles)"
 write "build all: phony $bin"
 write "default all"
